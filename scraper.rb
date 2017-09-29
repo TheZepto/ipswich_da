@@ -1,7 +1,8 @@
+# Altered from the Logan scraper at planning-alerts to
+# retrieve data from Jan 01 2007
+
 require 'scraperwiki'
 require 'mechanize'
-
-# Scraping from Masterview 2.0
 
 def scrape_page(page, comment_url)
   page.at("table.rgMasterTable").search("tr.rgRow,tr.rgAltRow").each do |tr|
@@ -11,13 +12,14 @@ def scrape_page(page, comment_url)
       "info_url" => (page.uri + tr.search('td').at('a')["href"]).to_s,
       "council_reference" => tds[1],
       "date_received" => Date.new(year, month, day).to_s,
-      "description" => tds[3].gsub("&amp;", "&").split("<br>")[1].squeeze(" ").strip,
-      "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").squeeze(" ").strip,
+      "description" => tds[3].gsub("&amp;", "&").split("<br>")[1].to_s.squeeze(" ").strip,
+      "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").gsub("<strong>","").gsub("</strong>","").squeeze(" ").strip,
       "date_scraped" => Date.today.to_s,
       "comment_url" => comment_url
     }
-    #p record
     if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
+      puts "Saving record " + record['council_reference'] + " - " + record['address']
+#      puts record
       ScraperWiki.save_sqlite(['council_reference'], record)
     else
       puts "Skipping already saved record " + record['council_reference']
@@ -27,14 +29,16 @@ end
 
 # Implement a click on a link that understands stupid asp.net doPostBack
 def click(page, doc)
-  href = doc["href"]
-  if href =~ /javascript:__doPostBack\(\'(.*)\',\'(.*)'\)/
+  js = doc["href"] || doc["onclick"]
+  if js =~ /javascript:__doPostBack\('(.*)','(.*)'\)/
     event_target = $1
     event_argument = $2
     form = page.form_with(id: "aspnetForm")
     form["__EVENTTARGET"] = event_target
     form["__EVENTARGUMENT"] = event_argument
     form.submit
+  elsif js =~ /return false;__doPostBack\('(.*)','(.*)'\)/
+    nil
   else
     # TODO Just follow the link likes it's a normal link
     raise
@@ -42,18 +46,20 @@ def click(page, doc)
 end
 
 url = "http://pdonline.ipswich.qld.gov.au/pdonline/Modules/ApplicationMaster/default.aspx?page=found&1=1/01/2007&2=29/09/2017"
-comment_url = "mailto:plandev@ipswich.qld.gov.au"
+comment_url = "mailto:council@ipswich.qld.gov.au"
 
 agent = Mechanize.new
 
 # Read in a page
 page = agent.get(url)
 
-form = page.forms.first
-button = form.button_with(value: "I Agree")
-form.submit(button)
-# It doesn't even redirect to the correct place. Ugh
-page = agent.get(url)
+# This is weird. There are two forms with the Agree / Disagree buttons. One of them
+# works the other one doesn't. Go figure.
+form = page.forms[1]
+button = form.button_with(value: "Agree")
+raise "Can't find agree button" if button.nil?
+page = form.submit(button)
+
 current_page_no = 1
 next_page_link = true
 
@@ -61,14 +67,8 @@ while next_page_link
   puts "Scraping page #{current_page_no}..."
   scrape_page(page, comment_url)
 
-  page_links = page.at(".rgNumPart")
-  if page_links
-    next_page_link = page_links.search("a").find{|a| a.inner_text == (current_page_no + 1).to_s}
-  else
-    next_page_link = nil
-  end
-  if next_page_link
-    current_page_no += 1
-    page = click(page, next_page_link)
-  end
+  current_page_no += 1
+  next_page_link = page.at(".rgPageNext")
+  page = click(page, next_page_link)
+  next_page_link = nil if page.nil?
 end
