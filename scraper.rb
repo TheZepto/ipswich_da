@@ -47,8 +47,8 @@ def click(page, doc)
   end
 end
 
-url = "http://pdonline.logan.qld.gov.au/MasterViewUI/Modules/ApplicationMaster/default.aspx?page=found" + period + "&4a=&6=F"
-comment_url = "mailto:council@logan.qld.gov.au"
+url = "http://pdonline.ipswich.qld.gov.au/pdonline/Modules/ApplicationMaster/default.aspx?page=found&1=1/01/2007&2=29/09/2017"
+comment_url = "mailto:plandev@ipswich.qld.gov.au"
 
 agent = Mechanize.new
 
