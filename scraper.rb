@@ -18,8 +18,6 @@ def scrape_page(page)
         "address" => tds[2].squeeze(" ").strip,
         "date_scraped" => Date.today.to_s
       }
-      record["comment_url"] = "https://sde.brisbane.qld.gov.au/services/startDASubmission.do?direct=true&daNumber=" + CGI.escape(record["council_reference"]) + "&sdeprop=" + CGI.escape(record["address"])
-      #p record
       if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
         ScraperWiki.save_sqlite(['council_reference'], record)
   #         else
@@ -57,7 +55,7 @@ end
 years = [2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010, 2009, 2008, 2007]
 periodstrs = years.map(&:to_s).product([*'-01'..'-12'].reverse).map(&:join).select{|d| d <= Date.today.to_s[0..-3]}.reverse
 
-url_ends = ['&4=DA_PA_SC_MCU&4a=DA_PA_SC_MCU', '&4=DA_PA_SW_BW&4a=DA_PA_SW_BW', '&4=DA_SPA_SC_MCU_CP&4a=DA_SPA_SC_MCU_CP', '&4=DA_SPA_SW_BLDNG_WORK&4a=DA_SPA_SW_BLDNG_WORK', '&4=DA_MC_MCU_CP&4a=DA_MC_MCU_CP', '&4=DA_BW_BLDNG_WORK&4a=DA_BW_BLDNG_WORK']
+url_ends = ['&4=809&4a=809', '&4=799&4a=799', '&4=1003&4a=1003', '&4=1443&4a=1443', '&4=1467&4a=1467', '&4=1468&4a=1468', '&4=1469&4a=1469', '&4=1415&4a=1415']
 
 url_ends.each {|url_end|
   periodstrs.each {|periodstr|
@@ -69,8 +67,7 @@ url_ends.each {|url_end|
     puts "Getting data in `" + periodstr + "`."
 
     url = "http://pdonline.ipswich.qld.gov.au/pdonline/Modules/ApplicationMaster/default.aspx?page=found" + period + url_end
-    comment_url = "mailto:plandev@ipswich.qld.gov.au"
-
+    
     agent = Mechanize.new
 
     # Read in a page
