@@ -16,8 +16,7 @@ def scrape_page(page)
         "date_received" => Date.new(year, month, day).to_s,
         "description" => tds[3].gsub("&amp;", "&").split("<br>")[1].to_s.squeeze(" ").strip,
         "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").gsub("<strong>","").gsub("</strong>","").squeeze(" ").strip,
-        "date_scraped" => Date.today.to_s,
-        "comment_url" => comment_url
+        "date_scraped" => Date.today.to_s
       }
       if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
         puts "Saving record " + record['council_reference'] + " - " + record['address']
